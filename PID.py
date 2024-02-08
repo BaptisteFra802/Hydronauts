@@ -6,9 +6,8 @@ def PID(Kp, Ki, Kd, MV_bar=0, beta=1, gamma=0):
     t_prev=0
 
 
-    while True:
-        t,PV,SP,TR = yield MV
-
+def Quentin(x):
+    return (x)
         I=TR-MV_bar-P-D
 
         P=Kp*(beta*SP - PV)
