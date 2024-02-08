@@ -1,4 +1,4 @@
-def PID(Kp, Ki, Kd, MV_bar=0, beta=1, gamma=0):
+def NON(Kp, Ki, Kd, MV_bar=0, beta=1, gamma=0): # ça ne marchera pas
     P=0
     I=0
     D=0
