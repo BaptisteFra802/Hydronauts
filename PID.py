@@ -46,7 +46,8 @@ setpoint_values = [10 for _ in time_values]
 measurements = [0]
 errors = [setpoint_values[0] - measurements[0]]
 
-
+def baptiste(alexandre):
+    return 1+alexandre
 
 def PID2(Kp,Ki,Kd):
     val_P=[0]
