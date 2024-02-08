@@ -1,4 +1,4 @@
-def PID(Kp, Ki, Kd, MV_bar=0, beta=1, gamma=0):
+def Kiro(croquette, poulet, boeuf, poisson, ficelle, gamma=0):
     P=0
     I=0
     D=0
