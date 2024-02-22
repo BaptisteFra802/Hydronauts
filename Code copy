@@ -71,10 +71,10 @@ class TeleopKeyboard(Node):
         self.main_speed_pub = self.create_publisher(Float64, '/wamv/thrusters/main/thrust', 5)
         self.main_bouee=self.create_subscription(ParamVec, '/wamv/sensors/acoustics/receiver/range_bearing',self.callback,5)
         self.PID_mot=PIDController()
-        self.PID_dir=PIDController
+        self.PID_dir=PIDController()
         self.main_phase=self.create_subscription(UInt32, '/vrx/patrolandfollow/current_phase',self.callback_phase,5)
         
-        self.get_logger().info('Teleop Keyboard Node Started')
+        self.get_logger().info('Lancement du programme Code by hydronauts')
         self.main_timer=self.create_timer(0.1,self.run)
 
     def callback(self,msg):
@@ -97,6 +97,14 @@ class TeleopKeyboard(Node):
         return max(0,min(12000,gain*(self.range-self.xphase)))
 
     def dir(self):
+        gain=0.01
+        return min(pi/4,max(-pi/4,-gain*self.bearing))
+    
+    def mot_pid(self):
+    gain=50
+    return max(0,min(12000,gain*(self.range-self.xphase)))
+
+    def dir_pid(self):
         gain=0.01
         return min(pi/4,max(-pi/4,-gain*self.bearing))
 

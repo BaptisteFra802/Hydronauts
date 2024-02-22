@@ -15,15 +15,18 @@ class TeleopKeyboard(Node):
         self.bearing=0
         self.range=0
         self.phase=1
+        self.latitude=48.04631295419033
+        self.longitude=-4.976315895687726
 
         self.main_turn_pub = self.create_publisher(Float64, '/wamv/thrusters/main/pos', 5)
         self.main_speed_pub = self.create_publisher(Float64, '/wamv/thrusters/main/thrust', 5)
         self.main_bouee=self.create_subscription(ParamVec, '/wamv/sensors/acoustics/receiver/range_bearing', self.callback, 5)
 
-        self.main_phase=self.create_subscription(ParamVec,'/vrx/patrolandfollow/current_phase',self.callback_phase,5)
+
 
         self.get_logger().info('Teleop Keyboard Node Started')
         self.main_timer=self.create_timer(0.1,self.run)
+
 
 
     def callback(self,msg):
@@ -34,9 +37,6 @@ class TeleopKeyboard(Node):
                 self.range=param.value.double_value
 
 
-    def callback_phase(self,msg):
-        for paramphase in msg.data:
-            return(paramphase)
 
 
     def dir(self):
@@ -59,12 +59,11 @@ class TeleopKeyboard(Node):
         speed_limit = 12000.0
         turn_limit = 0.78539816339
         try:
+
             speed=float(self.moteur())
             turn=float(self.dir())
 
             print(self.vels(speed,turn))
-
-            print(self.phase())
 
             speed_msg = Float64()
             turn_msg = Float64()

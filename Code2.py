@@ -6,7 +6,6 @@ from sensor_msgs.msg import NavSatFix, Image, CameraInfo
 from std_msgs.msg import Float64
 from std_msgs.msg import UInt32
 import subprocess
-from geometry_msgs.msg import PoseArray
 
 from ros_gz_interfaces.msg import ParamVec
 
@@ -15,25 +14,20 @@ import sys, select, termios, tty
 class TeleopKeyboard(Node):
     def __init__(self):
         super().__init__('teleop_keyboard')
+        self.rviz_process = None
         self.bearing=0
-        self.aze=0
         self.range=500
         self.phase=1
         self.xphase=20
         self.latitude=48.04631295419033
         self.longitude=-4.976315895687726
-        self.pos=0
         self.main_turn_pub = self.create_publisher(Float64, '/wamv/thrusters/main/pos', 5)
-        self.main_turn_pub = self.create_publisher(Float64, '/wamv/thrusters/main/pos2', 5)
-
         self.main_speed_pub = self.create_publisher(Float64, '/wamv/thrusters/main/thrust', 5)
         self.main_bouee=self.create_subscription(ParamVec, '/wamv/sensors/acoustics/receiver/range_bearing',self.callback,5)
         self.main_phase=self.create_subscription(UInt32, '/vrx/patrolandfollow/current_phase',self.callback_phase,5)
         self.main_gps=self.create_subscription(NavSatFix,'/wamv/sensors/gps/gps/fix',self.callback_gps,5)
-        
-        # self.main_alli_pos=self.create_subscription(PoseArray,'/wamv/ais_sensor/allies_positions',self.callback_alli_pos,5)
+
         # self.main_cam_img=self.create_subscription(Image,'/wamv/sensors/cameras/main_camera_sensor/image_raw',self.callback_img,5)
-        
         # self.main_cam_inf=self.create_subscription(CameraInfo,'/wamv/sensors/cameras/main_camera_sensor/camera_info',self.callback_inf,5)
 
         self.get_logger().info('Teleop Keyboard Node Started')
@@ -41,7 +35,6 @@ class TeleopKeyboard(Node):
 
     def callback(self,msg):
         for param in msg.params:
-            self.aze=msg.params
             if param.name=='bearing':
                 self.bearing=param.value.double_value
             if param.name=='range':
@@ -54,16 +47,6 @@ class TeleopKeyboard(Node):
     def callback_phase(self,msg):
         self.phase=msg.data
     
-    # def callback_alli_pos(self,msg):
-    #     self.pos=msg.poses
-    #     pos=msg.poses[0]
-    #     x=pos.x
-    #     y=pos.y
-    #     z=pos.z
-    #         if pos.name=='position':
-    #             self.alli_x,self.alli_y,self.alli_z=geometry_msgs.msg.Point
-
-
     # def callback_img(self,msg):
     
     # def callback_inf(self,msg):
@@ -84,15 +67,15 @@ class TeleopKeyboard(Node):
     def dir(self):
         gain=0.01
         return min(pi/4,max(-pi/4,-gain*self.bearing))
-
+    
     def mot1_2(self):
         return(3000)
 
     def dir1_2(self):
         gain=0.01
         return min(pi/4,max(-pi/4, gain* (self.bearing+pi)))
-
     
+
 
     def run(self):
         speed = 0.0
@@ -103,10 +86,14 @@ class TeleopKeyboard(Node):
         latitude_bouée=48.04804519121044
         longitude_bouee=-4.97550180409336
         x=50
+        image_topic = "/wamv/sensors/cameras/main_camera_sensor/image_raw" 
+        rviz_command = f"ros2 run rviz2 rviz2 --ros-args -p Image:=/{image_topic}"
 
+        
+        if self.rviz_process is None or self.rviz_process.poll() is not None:
+            self.rviz_process = subprocess.Popen(rviz_command, shell=True)
+        
         try:
-
-            # print(self.aze)
             print (self.latitude)
             print(self.longitude)
             if self.phase ==1 :
