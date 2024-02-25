@@ -24,14 +24,16 @@ class TeleopKeyboard(Node):
         self.longitude=-4.976315895687726
         self.pos=0
         self.main_turn_pub = self.create_publisher(Float64, '/wamv/thrusters/main/pos', 5)
-        self.main_turn_pub = self.create_publisher(Float64, '/wamv/thrusters/main/pos2', 5)
+        self.lat1=0
+        self.lon1=0
+        self.al1=0
 
         self.main_speed_pub = self.create_publisher(Float64, '/wamv/thrusters/main/thrust', 5)
         self.main_bouee=self.create_subscription(ParamVec, '/wamv/sensors/acoustics/receiver/range_bearing',self.callback,5)
         self.main_phase=self.create_subscription(UInt32, '/vrx/patrolandfollow/current_phase',self.callback_phase,5)
         self.main_gps=self.create_subscription(NavSatFix,'/wamv/sensors/gps/gps/fix',self.callback_gps,5)
         
-        # self.main_alli_pos=self.create_subscription(PoseArray,'/wamv/ais_sensor/allies_positions',self.callback_alli_pos,5)
+        self.main_alli_pos=self.create_subscription(PoseArray,'/wamv/ais_sensor/allies_positions',self.callback_alli_pos,5)
         # self.main_cam_img=self.create_subscription(Image,'/wamv/sensors/cameras/main_camera_sensor/image_raw',self.callback_img,5)
         
         # self.main_cam_inf=self.create_subscription(CameraInfo,'/wamv/sensors/cameras/main_camera_sensor/camera_info',self.callback_inf,5)
@@ -54,14 +56,16 @@ class TeleopKeyboard(Node):
     def callback_phase(self,msg):
         self.phase=msg.data
     
-    # def callback_alli_pos(self,msg):
-    #     self.pos=msg.poses
-    #     pos=msg.poses[0]
-    #     x=pos.x
-    #     y=pos.y
-    #     z=pos.z
-    #         if pos.name=='position':
-    #             self.alli_x,self.alli_y,self.alli_z=geometry_msgs.msg.Point
+
+
+    def callback_alli_pos(self,msg):
+        self.pos=msg.poses[0]
+        pos=msg.poses[0]
+        self.lat1=msg.poses[0].position.x
+        self.lon1=msg.poses[0].position.y
+        self.al1=msg.poses[0].position.z
+
+ 
 
 
     # def callback_img(self,msg):
@@ -103,12 +107,18 @@ class TeleopKeyboard(Node):
         latitude_bouée=48.04804519121044
         longitude_bouee=-4.97550180409336
         x=50
-
+        n=0
+        x0=0
+        y0=0
         try:
-
+            while n==0:
+                x0=self.latitude
+                y0=self.longitude
+                n=n+1
             # print(self.aze)
-            print (self.latitude)
-            print(self.longitude)
+            print (self.lat1)
+            print(self.lon1)
+            # print(self.pos)
             if self.phase ==1 :
                 speed=float(self.mot())
                 turn=float(self.dir())
