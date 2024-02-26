@@ -2,16 +2,17 @@
 from math import *
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import NavSatFix, Image, CameraInfo
+from sensor_msgs.msg import NavSatFix, Image, CameraInfo, Imu
 from std_msgs.msg import Float64
 from std_msgs.msg import UInt32
 import subprocess
 from geometry_msgs.msg import PoseArray
+import time
 
 from ros_gz_interfaces.msg import ParamVec
 
 import sys, select, termios, tty
-
+#attention, les longitude, c'est ouest positif et est négatif (axe de droite à gauche)
 class TeleopKeyboard(Node):
     def __init__(self):
         super().__init__('teleop_keyboard')
@@ -20,30 +21,41 @@ class TeleopKeyboard(Node):
         self.range=500
         self.phase=1
         self.xphase=20
+        self.ori=0
+        self.quat_x=0
+        self.quat_y=0
+        self.quat_z=0
+        self.quat_w=0
         self.latitude=48.04631295419033
         self.longitude=-4.976315895687726
-        self.pos=0
         self.main_turn_pub = self.create_publisher(Float64, '/wamv/thrusters/main/pos', 5)
         self.lat1=0
         self.lon1=0
         self.al1=0
+        self.n=0
 
         self.main_speed_pub = self.create_publisher(Float64, '/wamv/thrusters/main/thrust', 5)
         self.main_bouee=self.create_subscription(ParamVec, '/wamv/sensors/acoustics/receiver/range_bearing',self.callback,5)
         self.main_phase=self.create_subscription(UInt32, '/vrx/patrolandfollow/current_phase',self.callback_phase,5)
         self.main_gps=self.create_subscription(NavSatFix,'/wamv/sensors/gps/gps/fix',self.callback_gps,5)
-        
         self.main_alli_pos=self.create_subscription(PoseArray,'/wamv/ais_sensor/allies_positions',self.callback_alli_pos,5)
-        # self.main_cam_img=self.create_subscription(Image,'/wamv/sensors/cameras/main_camera_sensor/image_raw',self.callback_img,5)
+        self.main_alli_pos=self.create_subscription(Imu,'/wamv/sensors/imu/imu/data',self.callback_orientation,5)
         
+        # self.main_cam_img=self.create_subscription(Image,'/wamv/sensors/cameras/main_camera_sensor/image_raw',self.callback_img,5)
         # self.main_cam_inf=self.create_subscription(CameraInfo,'/wamv/sensors/cameras/main_camera_sensor/camera_info',self.callback_inf,5)
-
         self.get_logger().info('Teleop Keyboard Node Started')
         self.main_timer=self.create_timer(0.1,self.run)
 
+
+    def callback_orientation(self,msg):
+        # self.ori=msg.orientation.x
+        self.quat_x=msg.orientation.x
+        self.quat_y=msg.orientation.y
+        self.quat_z=msg.orientation.z
+        self.quat_w=msg.orientation.w
+    
     def callback(self,msg):
         for param in msg.params:
-            self.aze=msg.params
             if param.name=='bearing':
                 self.bearing=param.value.double_value
             if param.name=='range':
@@ -59,7 +71,6 @@ class TeleopKeyboard(Node):
 
 
     def callback_alli_pos(self,msg):
-        self.pos=msg.poses[0]
         pos=msg.poses[0]
         self.lat1=msg.poses[0].position.x
         self.lon1=msg.poses[0].position.y
@@ -107,23 +118,28 @@ class TeleopKeyboard(Node):
         latitude_bouée=48.04804519121044
         longitude_bouee=-4.97550180409336
         x=50
-        n=0
         x0=0
         y0=0
+        (xA,xB,yA,yB)=(0,0,0,0)
         try:
-            while n==0:
-                x0=self.latitude
-                y0=self.longitude
-                n=n+1
-            # print(self.aze)
-            print (self.lat1)
-            print(self.lon1)
-            # print(self.pos)
+            print('valeur quaternion x',self.quat_x)
+            print('valeur quaternion y',self.quat_y)
+            print('valeur quaternion z',self.quat_z)
+            print('valeur quaternion w',self.quat_w)
+
+            while self.n==0 or x0<10:
+                if self.latitude>1:
+                    x0=self.latitude
+                    y0=self.longitude
+                    self.n=self.n+1
+                else:
+                    continue
             if self.phase ==1 :
                 speed=float(self.mot())
                 turn=float(self.dir())
                 print(self.vels(speed,turn))
                 print('phase=1')
+                print('latitude0',x0,'longitude0=',y0)
                 speed_msg = Float64()
                 turn_msg = Float64()
                 speed_msg.data = speed
@@ -154,6 +170,31 @@ class TeleopKeyboard(Node):
                     turn_msg = Float64()
                     speed_msg.data = speed
                     turn_msg.data = turn
+
+
+                    speed=6000
+                    turn=0.0
+                    xA=self.latitude
+                    yA=self.longitude
+                    speed_msg = Float64()
+                    turn_msg = Float64()
+                    speed_msg.data = speed
+                    turn_msg.data = turn
+
+#ceci est un test pour obtenir un cap compas nord
+                    # time.sleep(10)
+                    # xB=self.latitude
+                    # yB=self.longitude
+                    # speed=0.0
+                    # speed_msg = Float64()
+                    # speed_msg.data=speed
+
+                    # deltalat=(xB-xA)*60    #en mile nautique
+                    # deltalong=abs(yB-yA)*60*cos((abs(xB-xA))/2)    #en mile nautique
+                    # dist=(10*3000)/3600     #en mile nautique
+
+
+
             
                     self.main_turn_pub.publish(turn_msg)
                     self.main_speed_pub.publish(speed_msg)
